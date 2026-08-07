@@ -43,11 +43,11 @@ version: 3.0.0
 ---
 ```
 
-The `description` field drives auto-discovery — AI tools match user requests against it. Keep it specific and third-person. The `name` field must match the directory name where users install the skill.
+The `description` field drives auto-discovery. The `name` field must match the directory name where users install the skill.
 
 **Skill body** (~430 lines of structured markdown) covering:
 - When to activate (trigger phrases)
-- Step 1: Pre-review checklist (blank fields, missing exhibits, signature status)
+- Step 1: Pre-review checklist
 - Step 2: Position identification (customer/vendor/buyer/seller/etc.)
 - Output format spec with a full annotated example
 - Red flags quick scan table (12 danger signs)
@@ -55,18 +55,16 @@ The `description` field drives auto-discovery — AI tools match user requests a
 - Risk categories: 41 original CUAD categories + ~43 extensions (84 total)
 - Market standard benchmarks table with numeric thresholds
 - Negotiability guide (High/Medium/Low/None ratings)
-- Jurisdiction notes (non-competes, governing law, arbitration venues)
+- Jurisdiction notes
 - Guardrails (not legal advice, no hallucination, always show acceptable terms)
 
 ### README.md — User-Facing Documentation
 
-Installation guide, feature overview, usage examples, and links to the companion project `legal-redline-tools`. The README version badge must always match the version in `skill.md` YAML frontmatter — they are coupled and must be updated together.
-
-The README references `legal-redline-tools` (https://github.com/evolsb/legal-redline-tools) as a companion Python project for generating tracked-changes Word docs and redline PDFs from the skill's output. That project lives in a separate repository — do not conflate the two.
+Installation guide, feature overview, usage examples. The README version badge must always match the version in `skill.md` YAML frontmatter — they are coupled and must be updated together.
 
 ### examples/ — Quality Baseline
 
-Four full sample outputs that serve as the authoritative reference for correct skill behavior:
+Four full sample outputs serving as the authoritative reference for correct skill behavior:
 
 | File | Contract Type | User Position | Risk Level | Key Purpose |
 |------|--------------|---------------|------------|-------------|
@@ -75,11 +73,7 @@ Four full sample outputs that serve as the authoritative reference for correct s
 | `ma-agreement-review.md` | M&A acquisition | Seller | High | Complex deal review |
 | `balanced-agreement.md` | SaaS | Customer | Low | **Demonstrates affirming acceptable terms** |
 
-The `balanced-agreement.md` example is the most important one to preserve. It exists specifically to demonstrate that the skill must include a "Reviewed & Acceptable" section — it cannot just surface problems. Every review output must affirm acceptable terms, not only flag risks.
-
-### CHANGELOG.md — Version History
-
-All four versions (1.0.0 through 3.0.0) were released on 2026-01-26 during rapid iteration. Follow semver. Every change must be documented here.
+The `balanced-agreement.md` example is the most important one to preserve — it demonstrates the mandatory "Reviewed & Acceptable" section.
 
 ## Development Environment
 
@@ -89,9 +83,8 @@ The `.gitignore` excludes:
 - `.venv/`, `venv/`, `env/` — Python environments (for local tooling only)
 - `.zdai/` — Zuva AI config containing API tokens
 - `contracts/`, `*.pdf`, `*.docx` — actual contract documents (privacy)
-- `.env`, `.env.local` — environment files
 
-**Never commit actual contract documents.** The gitignore exclusions for `contracts/` and `*.pdf/*.docx` are intentional privacy safeguards.
+**Never commit actual contract documents.**
 
 ## Commands
 
@@ -104,14 +97,6 @@ git clone https://github.com/evolsb/claude-legal-skill ~/.claude/skills/contract
 
 # OpenAI Codex
 git clone https://github.com/evolsb/claude-legal-skill ~/.codex/skills/contract-review
-
-# Other Agent Skills-compatible tools — clone to your tool's skills directory
-```
-
-**Development (symlink for local editing):**
-```bash
-git clone https://github.com/evolsb/claude-legal-skill ~/Developer/claude-legal-skill
-ln -s ~/Developer/claude-legal-skill ~/.claude/skills/contract-review
 ```
 
 **Quality validation (manual — the only quality gate):**
@@ -123,45 +108,27 @@ ln -s ~/Developer/claude-legal-skill ~/.claude/skills/contract-review
 5. Confirm a "Reviewed & Acceptable" section appears
 ```
 
-## Architecture
-
-The skill follows a **progressive disclosure** loading model:
-
-1. **Metadata** (`name` + `description` from YAML frontmatter) — always in the AI tool's context, approximately 100 tokens
-2. **skill.md body** — loaded when the tool determines the skill is relevant to the user's request
-3. **examples/** — not loaded automatically; consulted by humans as a quality reference
-
-The skill's output is structured markdown only — no XML tags, no JSON in the contract review itself. The companion project `legal-redline-tools` can consume the skill's redline suggestions to produce Word/PDF deliverables.
-
 ## Key Conventions
 
 ### Output Format (strictly enforced)
 
 Every contract review must follow this exact sequence:
 1. Header block (document type, party position, counterparty, overall risk, document status)
-2. Pre-Signing Alerts (blank fields, missing exhibits)
+2. Pre-Signing Alerts
 3. Executive Summary
 4. Key Terms table (with section references)
 5. Red Flags Quick Scan table
 6. Risk Analysis sections: Critical / Important / Acceptable
-7. Missing Provisions (with suggested language)
-8. Internal Consistency Issues (optional, when present)
-9. Negotiation Priority matrix
+7. Missing Provisions
+8. Negotiation Priority matrix
 
-The "Reviewed & Acceptable" section under Risk Analysis is mandatory — every review must affirm what is acceptable, not only flag problems.
+The "Reviewed & Acceptable" section under Risk Analysis is mandatory.
 
 ### Position-Aware Analysis (core differentiator)
 
-Before reviewing, the skill asks which party the user represents. Risk assessment is always relative to that position:
-- Customer reviewing vendor agreement → flags vendor-favorable terms
-- Vendor reviewing own template → flags customer-favorable terms
-- Buyer in M&A → flags seller-favorable terms
-- Seller in M&A → flags buyer-favorable terms
-- Receiving party in NDA → flags disclosing party-favorable terms
+Before reviewing, the skill asks which party the user represents. Risk assessment is always relative to that position.
 
 ### Market Benchmark Thresholds (do not change without strong justification)
-
-Thresholds are calibrated from real negotiation outcomes. The key ones:
 
 | Provision | Standard | Yellow Flag | Red Flag |
 |-----------|----------|-------------|----------|
@@ -171,17 +138,13 @@ Thresholds are calibrated from real negotiation outcomes. The key ones:
 | SLA uptime | 99.9% with credits | 99.5% | No SLA |
 | Data export | 90 days, standard format | 30 days | None |
 
-If you change thresholds in `skill.md`, update the example files accordingly — they must stay consistent with the thresholds to remain valid as a quality baseline.
-
-### CUAD Category Count
-
-`skill.md` covers 41 original CUAD categories (from the Atticus/NeurIPS dataset) plus ~43 extensions, totaling ~84 risk categories. The README badge states "41 Categories" (the original CUAD count). If the extended count is ever surfaced in marketing copy, update the badge. Do not change the badge to 84 without understanding this distinction.
+If you change thresholds in `skill.md`, update the example files accordingly.
 
 ### Versioning
 
-Follows semver. When bumping the version:
+When bumping the version:
 1. Update `version:` in `skill.md` YAML frontmatter
-2. Update the version badge in `README.md` — these two are coupled and must match
+2. Update the version badge in `README.md` — these two must match
 3. Add an entry to `CHANGELOG.md`
 
 Never update only one of the two version references.
@@ -196,17 +159,15 @@ Never update only one of the two version references.
 
 **The only files that should ever be edited:**
 - `skill.md` — to improve skill behavior, fix instructions, update benchmarks
-- `README.md` — to update docs, installation instructions, or version badge
+- `README.md` — to update docs or version badge
 - `CHANGELOG.md` — to document every change
 - `examples/*.md` — to update sample outputs when behavior or thresholds change
-- `examples/demo.png` — only if a new screenshot is needed
 
 **When editing skill.md:**
-- The version field is in the YAML frontmatter at the top of the file (currently `3.0.0`)
 - The `description` field must remain specific enough for AI tools to auto-discover the skill
 - Market benchmark thresholds are intentional and calibrated — do not change them casually
-- The guardrails section at the bottom is non-negotiable: the skill must never give legal advice, must never hallucinate, and must always include a "Reviewed & Acceptable" section
+- The guardrails section is non-negotiable: never give legal advice, never hallucinate, always include a "Reviewed & Acceptable" section
 
-**Quality validation is always manual.** There is no automated test suite. To verify a change works correctly: install the skill, paste a representative contract, invoke the review, and compare the output structure and risk ratings against the `examples/` folder.
+**Quality validation is always manual.** There is no automated test suite.
 
-**Companion project distinction.** The `legal-redline-tools` repo (https://github.com/evolsb/legal-redline-tools) contains Python tooling for generating Word/PDF deliverables from this skill's output. It is a separate repository. Do not add Python scripts or any executable code to this repository.
+**Companion project distinction.** The `legal-redline-tools` repo contains Python tooling for generating Word/PDF deliverables from this skill's output. It is a separate repository — do not add code to this repository.
